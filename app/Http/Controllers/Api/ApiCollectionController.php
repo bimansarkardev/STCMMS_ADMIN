@@ -11,6 +11,9 @@ use App\Models\CollectionsModel;
 use App\Models\FieldWorkersModel;
 use App\Models\AttendanceLogsModel;
 use App\Models\AttendanceVehicleModel;
+use App\Models\PlantMasterModel;
+use App\Models\DisposalModel;
+use App\Models\DisposalDetailsModel;
 
 
 use Illuminate\Support\Facades\DB;
@@ -253,6 +256,272 @@ class ApiCollectionController extends Controller
         return response()->json([
             'status' => true,
             'message' => "Your Collection Details.",
+            'data' => $data,
+        ], 200);
+    }
+
+    function collection_summary(Request $request)
+    {
+        $user = User::where('login_token', $request->bearerToken())->first();
+
+        $filters = [
+            'field_worker_user_id' => $user->user_id,
+        ];
+
+        $field_worker = (new FieldWorkersModel)->getFieldWorkers('', $filters);
+        
+        $filters = [
+            'user_id'   => $user->user_id,
+            //'from_date' => $request->from_date,
+            //'to_date' => $request->to_date,
+            //'service_id' => $request->service_id,
+        ];
+        
+        $params = (new CollectionsModel)->get_collection_summary($filters);
+        return response()->json([
+            'status' => true,
+            'message' => "Your Collection Summary.",
+            'data' => $params,
+        ], 200);
+    }
+
+    function plants_list(Request $request)
+    {
+        $user = User::where('login_token', $request->bearerToken())->first();
+
+        $filters = [
+            'field_worker_user_id' => $user->user_id,
+        ];
+
+        $field_worker = (new FieldWorkersModel)->getFieldWorkers('', $filters);
+
+        $filters = [
+            'municipality_id' => $field_worker->municipality_id,
+        ];
+        $params = (new PlantMasterModel)->getPlants(null, $filters);
+
+        return response()->json([
+            'status' => true,
+            'message' => "Plant List.",
+            'data' => $params,
+        ], 200);
+    }
+
+    public function disposal_submit(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            $user = User::where('login_token', $request->bearerToken())->first();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid user',
+                    'data' => []
+                ], 401);
+            }
+
+            // ✅ Get field worker
+            $field_worker = (new FieldWorkersModel)->getFieldWorkers('', [
+                'field_worker_user_id' => $user->user_id,
+            ]);
+
+            $currentDate = Carbon::today()->toDateString();
+
+            // ✅ Active attendance
+            $attendance_log = AttendanceLogsModel::where('field_worker_id', $field_worker->id)
+                ->whereDate('date', $currentDate)
+                ->whereNull('logout_time')
+                ->latest('login_time')
+                ->first();
+
+            if (!$attendance_log) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'You have to attendance-in before disposal',
+                    'data' => []
+                ], 422);
+            }
+
+            // ✅ Vehicle check
+            $vehicle = AttendanceVehicleModel::where('attendance_id', $attendance_log->attendance_id)->first();
+
+            // ✅ Validation
+            $validator = Validator::make($request->all(), [
+                'plant_id' => 'required|numeric|exists:plant_masters,id',
+                'incharge_id' => 'required|numeric|exists:plant_master_incharges,id',
+                'disposal_lat' => 'required|string',
+                'disposal_long' => 'required|string',
+                'disposal_address' => 'required|string',
+                'image' => 'required|file|mimes:jpg,jpeg,png|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => $validator->errors()->first(),
+                    'data' => []
+                ], 422);
+            }
+
+            // ✅ Get collections (ONLY active ones)
+            $collection_summary = (new CollectionsModel)->get_collection_summary([
+                'user_id' => $user->user_id,
+            ]);
+
+            $summary = $collection_summary['summary'];
+
+            if (sizeof($summary) == 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No collections available for disposal',
+                    'data' => []
+                ], 422);
+            }
+
+            $total_volume_quantity = $collection_summary['total_volume_quantity'];
+
+            // ✅ UID
+            do {
+                $uid = $this->commonService->getToken(15, 'UID');
+            } while (DisposalModel::where('uid', $uid)->exists());
+
+            // ✅ Upload
+            $filePath = null;
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/disposal'), $filename);
+                $filePath = 'uploads/disposal/' . $filename;
+            }
+
+            // ✅ Create disposal
+            $disposal = DisposalModel::create([
+                'uid' => $uid,
+                'municipality_id' => $field_worker->municipality_id,
+                'plant_id' => $request->plant_id,
+                'quantity' => $total_volume_quantity, // numeric
+                'incharge_id' => $request->incharge_id,
+                'created_by' => $user->user_id,
+                'vehicle_id' => $vehicle->vehicle_id,
+                'disposal_lat' => $request->disposal_lat,
+                'disposal_long' => $request->disposal_long,
+                'disposal_address' => $request->disposal_address,
+                'image' => $filePath,
+            ]);
+
+            // ✅ Prepare bulk insert + update
+            $collection_ids = [];
+            $details_data = [];
+
+            foreach ($summary as $item) {
+                $collection_ids[] = $item->id;
+
+                $details_data[] = [
+                    'disposal_id' => $disposal->id,
+                    'collection_id' => $item->id,
+                ];
+            }
+
+            // ✅ Bulk insert
+            DisposalDetailsModel::insert($details_data);
+
+            // ✅ Bulk update (IMPORTANT)
+            CollectionsModel::whereIn('id', $collection_ids)
+                ->update(['status' => 2]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => "Disposal ({$uid}) has been successfully completed.",
+                'data' => $disposal
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage(),
+                'data' => []
+            ], 500);
+        }
+    }
+
+    function disposal_list(Request $request)
+    {
+        $user = User::where('login_token', $request->bearerToken())->first();
+
+        $validator = Validator::make($request->all(), [
+            'from_date' => 'nullable|date',
+            'to_date'   => 'nullable|date',
+            'page'   => 'required|numeric',
+            'per_page'   => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->first(),
+                'data' => []
+            ], 422);
+        }
+        
+        $filters = [
+            'user_id'   => $user->user_id,
+            'from_date' => $request->from_date,
+            'to_date' => $request->to_date,
+        ];        
+        
+        $params = (new DisposalModel)->get_disposal_list(null , $filters , false , $request->per_page, $request->page);
+
+        $total_records = (new DisposalModel)->get_disposal_list(null , $filters , true , null, null);
+
+        return response()->json([
+            'status' => true,
+            'message' => "Your Disposal List.",
+            'data' => $params,
+            'total_records' => $total_records,
+            'records_showing' => sizeof($params),
+            'page' => $request->page,
+            'per_page' => $request->per_page,
+        ], 200);
+    }
+
+    public function disposal_details(Request $request)
+    {
+        $user = User::where('login_token', $request->bearerToken())->first();
+
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->first(),
+                'data' => []
+            ], 422);
+        }
+        
+        $filters = [
+            'id' => $request->id,
+        ];        
+        
+        $details = (new DisposalModel)->get_disposal_list(null , $filters , false , null, null);
+
+        $data = [
+            'details' => $details,
+        ];
+
+        return response()->json([
+            'status' => true,
+            'message' => "Your Disposal Details.",
             'data' => $data,
         ], 200);
     }

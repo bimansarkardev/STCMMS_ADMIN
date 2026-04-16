@@ -76,11 +76,11 @@ class CollectionsModel extends Model
                 'collections.other_nature_of_service_details',
                 'collections.type_of_building',
                 'types_of_buildings.name as type_of_building_name',
-
                 'collections.accessibility',
                 'accessibility_types.name as accessibility_name',
                 'collections.accessibility_details',
                 'collections.volume_quantity',
+                DB::raw("CONCAT(collections.volume_quantity , ' ltr.') as volume_quantity_mod"),
                 'collections.tank_open_duration',
                 'tank_open_durations.name as tank_open_duration_name',
                 'collections.no_of_users',
@@ -124,9 +124,10 @@ class CollectionsModel extends Model
             $query->where("collections.ward", '=', $filters['ward']);
         }
 
-        if (isset($filters['from_date']) && !empty($filters['from_date']) && isset($filters['to_date']) && !empty($filters['to_date']))
-        {
-            $query->whereBetween("collections.created_at", [$filters['from_date'], $filters['to_date']]);
+        if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
+            $from = $filters['from_date'] . ' 00:00:00';
+            $to   = $filters['to_date'] . ' 23:59:59';
+            $query->whereBetween('collections.created_at', [$from, $to]);
         }
 
         if(isset($filters['user_id']) && !empty($filters['user_id']))
@@ -161,6 +162,38 @@ class CollectionsModel extends Model
         {
             return $query->get();
         }        
+    }
+
+    function get_collection_summary($filters = [])
+    {
+        $query = DB::table('collections')           
+            ->Join('module_master', "module_master.id", '=', 'collections.service_id')            
+            ->select(
+                'collections.id',
+                'collections.service_id',
+                'module_master.name as service_name',
+                'collections.uid',
+                'collections.trip_number',
+                'collections.beneficiary_name',
+                'collections.volume_quantity',
+                DB::raw("CONCAT(collections.volume_quantity , ' ltr.') as volume_quantity_mod"),
+                'collections.created_at',
+                DB::raw("DATE_FORMAT(collections.created_at, '%d/%m/%y - %h:%i %p') as formatted_created_at"),
+                DB::raw("DATE_FORMAT(collections.created_at, '%h:%i %p') as formatted_created_at_time"),
+            );
+        if(isset($filters['user_id']) && !empty($filters['user_id']))
+        {
+            $query->where("collections.created_by", '=', $filters['user_id']);
+        }
+        $query->where("collections.status", '=', 1);
+        $query->orderBy("collections.updated_at" , 'desc');        
+        $summary = $query->get();
+        $total_volume_quantity = $summary->sum('volume_quantity');
+        return [
+            'summary' => $summary,
+            'total_volume_quantity' => $total_volume_quantity,
+            'total_volume_quantity_mod' => $total_volume_quantity.' ltr.'
+        ];
     }
 }
 

@@ -52,5 +52,11 @@ Route::middleware(['verify.auth'])->group(function () {
     Route::post('/collection_submit', [ApiCollectionController::class, 'collection_submit']);
     Route::post('/collection_list', [ApiCollectionController::class, 'collection_list']);
     Route::post('/collection_details', [ApiCollectionController::class, 'collection_details']);
-    
+
+    //disposal
+    Route::post('/collection_summary', [ApiCollectionController::class, 'collection_summary']);
+    Route::post('/plants_list', [ApiCollectionController::class, 'plants_list']);
+    Route::post('/disposal_submit', [ApiCollectionController::class, 'disposal_submit']);
+    Route::post('/disposal_list', [ApiCollectionController::class, 'disposal_list']);
+    Route::post('/disposal_details', [ApiCollectionController::class, 'disposal_details']);
 }); 
