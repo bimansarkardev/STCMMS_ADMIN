@@ -51,7 +51,7 @@
               <div class="col-12">
                   <div class="callout callout-info">
                       <span class="bi bi-info-circle-fill"></span>
-                      This is the list of <strong>{{ $title }}</strong>.@if(session('user')->user_type_id==1) You can <strong>edit</strong> existing ones, or <strong>delete</strong> those not linked to any records.@endif
+                      This is the list of <strong>{{ $title }}</strong>
                   </div>
               </div>
 
@@ -89,20 +89,49 @@
                 @endif
 
                 <div class="card card-info card-outline mb-4">
-                  <div class="card-header">
-                    <div class="row w-100 align-items-center">
-                      <div class="col-md-6">
-                        <h3 class="card-title mb-0">{{ $title }} List</h3>
-                      </div>
-                      @if(session('user')->user_type_id==1)
-                      <div class="col-md-6 text-end">
-                        <div class="d-flex justify-content-end gap-2 flex-wrap">
-                          <a href="{{ route($addUrl) }}" class="btn btn-info">Add New</a>
+                    <form method="get" action="{{ route('admin.disposalsList') }}">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+
+                            <h3 class="card-title mb-0">{{ $title }} List</h3>
+
+                            <div class="d-flex gap-2 flex-wrap ms-auto">
+
+                                <!-- Municipality Dropdown -->
+                                 @if(session('user')->user_type_id==1)
+                                <select name="m" class="form-control w-auto">
+                                    <option selected disabled value="">🏙 Select Municipality</option>
+                                    @foreach($municipalities as $municipality)
+                                        <option value="{{ $municipality->user_id }}"
+                                            {{ request('m') == $municipality->user_id ? 'selected' : '' }}>
+                                            {{ $municipality->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @endif
+
+                                <!-- Date Range -->
+                                <div class="input-group w-auto">
+                                    <span class="input-group-text">📅</span>
+                                    <input type="date" name="fd" class="form-control"
+                                        value="{{ request('fd', $from_date) }}">
+                                    <span class="input-group-text">to</span>
+                                    <input type="date" name="td" class="form-control"
+                                        value="{{ request('td', $to_date) }}">
+                                </div>
+
+                                <!-- Search Button -->
+                                <button type="submit" class="btn btn-success">
+                                    🔍 Search
+                                </button>
+
+                                <!-- Reset Button (Redirect) -->
+                                <a href="{{ route('admin.disposalsList') }}" class="btn btn-secondary">
+                                    ♻️ Reset
+                                </a>
+
+                            </div>
                         </div>
-                      </div>
-                      @endif
-                    </div>
-                  </div>
+                    </form>
                   <!-- /.card-header -->
                   <div class="card-body">
                     <div class="table-responsive">
@@ -110,47 +139,43 @@
                         <thead>
                           <tr>
                             <th style="width: 5%" class="text-center">#</th>
-                            <th>Name</th>
-                            <th>Role</th>
-                            <th class="text-center">Is User</th>
-                            <th>Contact No.</th>
-                            <th>Municipality</th>                            
-                            <th>Work With</th>
-                            <th>Address</th>
-                            @if(session('user')->user_type_id==1)
-                            <th class="text-center">Action</th>
-                            @endif
+                            <th>Municipality</th>
+                            <th class="text-center">Date - Time</th>
+                            <th>Plant Details</th>
+                            <th>Disposal Details</th>
+                            <th class="text-center">Disposal Image</th>
                           </tr>
                         </thead>
                         <tbody>
-                             @foreach ($params as $index => $user)
+                             @foreach ($params as $index => $row)
                               <tr class="align-middle">
                                 <td class="text-center">{{ ($params->currentPage() - 1) * $params->perPage() + $index + 1 }}.</td>
-                                <td>{{ $user->field_worker_name }}</td>
-                                <td>{{ $user->role_name }}</td>
-                                <td class="text-center">
-                                    <span class="badge {{ $user->is_user == 1 ? 'bg-success' : 'bg-danger' }}">
-                                        {{ $user->is_user == 1 ? 'Yes' : 'No' }}
-                                    </span>
-                                </td>
-                                <td>{{ $user->field_worker_mobile_no ? : 'Not Given'  }}</td>
-                                <td>{{ $user->municipality_name }}</td>                                
+                                <td>{{ $row->municipality_name }}</td>
+                                <td class="text-center">{{ $row->formatted_created_at }}</td>
                                 <td>
-                                  @if($user->operate_by == 1)
-                                      <i class="bi bi-bank text-primary"></i>
-                                      <small>{{ $user->municipality_name }}</small>
-                                  @else
-                                      <i class="bi bi-building text-success"></i>
-                                      <small>{{ $user->agency_name }}</small>
-                                  @endif
-                              </td>
-                                <td>{{ $user->address ? : 'Not Given' }}</td>
-                                @if(session('user')->user_type_id==1)
-                                <td class="text-center">
-                                  <a href="#" class="btn btn-warning btn-sm"><i class="bi bi-pencil-square"></i></a>
-                                  <a href="javascript:void(0)" onclick="confirmDelete('#')" class="btn btn-danger btn-sm"><i class="bi bi-trash-fill"></i></a>
+                                    📍 {{ $row->plant_location }}<br>
+                                    🏭 {{ $row->plant_category_name }}<br>
+                                    🧭 {{ $row->plant_ward_no }}<br>
+                                    👤 {{ $row->incharge_name }}
                                 </td>
-                                @endif
+
+                                <td>
+                                    📅 {{ $row->formatted_created_at }}<br>
+                                    👷 {{ $row->created_by_name }} | 🚛 {{ $row->vehicle_type }} ({{ $row->vehicle_reg_no }})<br>
+                                    🧪 {{ $row->quantity_mod }}
+                                </td>
+                                <td class="text-center">
+                                    @if($row->image_filepath)
+                                        <button 
+                                            class="btn btn-sm btn-outline-primary show-image-btn"
+                                            data-img="{{ $row->image_filepath }}"
+                                        >
+                                            🖼️ Show Proof
+                                        </button>
+                                    @else
+                                        <span class="text-muted">No Image</span>
+                                    @endif
+                                </td>
                               </tr>
                               @endforeach
                         </tbody>
@@ -176,11 +201,35 @@
       <!--end::App Main-->
       <!--begin::Footer-->
       @include('common.footer')
+      <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+
+            <div class="modal-header">
+              <h5 class="modal-title">📸 Image Proof</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body text-center">
+              <img id="modalImage" src="" class="img-fluid rounded" style="max-height:500px;">
+            </div>
+
+          </div>
+        </div>
+      </div>
       <!--end::Footer-->
     </div>
     <!--end::App Wrapper-->
     <!--begin::Script-->
     @include('common.script')
+    <script>
+      $(document).on('click', '.show-image-btn', function () {
+          let imgUrl = $(this).data('img');
+
+          $('#modalImage').attr('src', imgUrl);
+          $('#imageModal').modal('show');
+      });
+    </script>
     <!--end::Script-->
   </body>
   <!--end::Body-->

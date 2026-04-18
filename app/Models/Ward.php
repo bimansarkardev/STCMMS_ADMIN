@@ -19,6 +19,7 @@ class Ward extends Model
 
     public function getWard($perPage, $filters = [])
     {
+        //dd($filters);
         $query = DB::table('ward')
             ->leftJoin('user', 'user.user_id', '=', 'ward.municipality')
             ->select(
@@ -31,7 +32,7 @@ class Ward extends Model
 
         // Filters
         if (!empty($filters['user_type_id']) && $filters['user_type_id'] == 2) {
-            if (isset($filters['municipality']) && !empty($filters['user_id'])) {
+            if (isset($filters['user_id']) && !empty($filters['user_id'])) {
                 $query->where('ward.municipality', '=', $filters['user_id']);
             }
         }

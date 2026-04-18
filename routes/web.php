@@ -9,7 +9,8 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\MunicipalityController;
 use App\Http\Controllers\FrontendDashboardController;
 use App\Http\Controllers\ScriptController;
-
+use App\Http\Controllers\AttendanceReportController;
+use App\Http\Controllers\CollectionDisposalController;
 
 Route::prefix('admin')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('admin.login');
@@ -75,6 +76,12 @@ Route::prefix('admin')->group(function () {
     Route::get('/agencies', [MunicipalityController::class, 'agencies'])->name('admin.agencies');
     Route::get('/addAgency', [MunicipalityController::class, 'addAgency'])->name('admin.addAgency');
     Route::post('/addAgency', [MunicipalityController::class, 'addAgencyProcess'])->name('admin.addAgency.submit');
+    
+    Route::get('/attendanceList', [AttendanceReportController::class, 'attendanceList'])->name('admin.attendanceList');
+    Route::post('/getAttendanceSessions', [AttendanceReportController::class, 'getAttendanceSessions'])->name('admin.getAttendanceSessions');
+
+    Route::get('/collectionsList', [CollectionDisposalController::class, 'collectionsList'])->name('admin.collectionsList');
+    Route::get('/disposalsList', [CollectionDisposalController::class, 'disposalsList'])->name('admin.disposalsList');
 
     //scripts
     Route::get('/runWardScripts', [ScriptController::class, 'runWardScripts'])->name('admin.runWardScripts');

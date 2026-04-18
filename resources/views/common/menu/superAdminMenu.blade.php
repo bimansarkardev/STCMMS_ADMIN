@@ -84,3 +84,24 @@
     <p>Field Workers</p>
   </a>
 </li>
+
+<li class="nav-item">
+  <a href="{{route('admin.attendanceList')}}" class="nav-link @if($lastSegment=='attendanceList') active @endif">
+    <i class="nav-icon bi bi-check2-square"></i>
+    <p>Attendance List</p>
+  </a>
+</li>
+
+<li class="nav-item">
+  <a href="{{route('admin.collectionsList')}}" class="nav-link @if($lastSegment=='collectionsList') active @endif">
+    <i class="nav-icon bi bi-box-arrow-up"></i>
+    <p>Collections List</p>
+  </a>
+</li>
+
+<li class="nav-item">
+  <a href="{{route('admin.disposalsList')}}" class="nav-link @if($lastSegment=='disposalsList') active @endif">
+    <i class="nav-icon bi bi-box-arrow-down"></i>
+    <p>Disposals List</p>
+  </a>
+</li>

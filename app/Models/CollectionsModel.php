@@ -44,6 +44,7 @@ class CollectionsModel extends Model
 
     public function get_collection_list($perPage = null, $filters = [], $returnCount = false, $perPageApi = null, $pageApi = null, )
     {
+        //dd($filters);
         $query = DB::table('collections')           
             ->Join('module_master', "module_master.id", '=', 'collections.service_id')            
             ->leftJoin('user as ulb', "ulb.user_id", '=', 'collections.municipality_id')
@@ -56,7 +57,7 @@ class CollectionsModel extends Model
             ->leftJoin('tank_open_durations', "tank_open_durations.id", '=', "collections.tank_open_duration")
             ->leftJoin('vehicles', "vehicles.id", '=', "collections.vehicle_id")
             ->leftJoin('collection_status', "collection_status.id", '=', "collections.status")
-            
+            ->leftJoin('user as created_by_user', "created_by_user.user_id", '=', 'collections.created_by')
             ->select(
                 'collections.id',
                 'collections.service_id',
@@ -98,11 +99,13 @@ class CollectionsModel extends Model
                     ) AS image_filepath
                 "),
                 'collections.created_by',
+                'created_by_user.name as created_by_name',
                 'collections.vehicle_id',
                 'vehicles.vehicle_type',
                 'vehicles.vehicle_reg_no',                
                 'collections.created_at',
                 DB::raw("DATE_FORMAT(collections.created_at, '%d/%m/%y - %h:%i %p') as formatted_created_at"),
+                DB::raw("DATE_FORMAT(collections.created_at, '%d/%m/%y') as formatted_created_at_date"),
                 'collections.updated_at',
                 DB::raw("DATE_FORMAT(collections.updated_at, '%d/%m/%y - %h:%i %p') as formatted_updated_at"),
                 'collections.status',
@@ -112,6 +115,12 @@ class CollectionsModel extends Model
         if (isset($filters['municipality_id']) && !empty($filters['municipality_id'])) 
         {
             $query->where("collections.municipality_id", '=', $filters['municipality_id']);
+        }
+
+        if (!empty($filters['user_type_id']) && $filters['user_type_id'] == 2) {
+            if (isset($filters['user_id']) && !empty($filters['user_id'])) {
+                $query->where('collections.municipality_id', '=', $filters['user_id']);
+            }
         }
 
         if (isset($filters['service_id']) && !empty($filters['service_id'])) 
@@ -130,12 +139,12 @@ class CollectionsModel extends Model
             $query->whereBetween('collections.created_at', [$from, $to]);
         }
 
-        if(isset($filters['user_id']) && !empty($filters['user_id']))
+        if(isset($filters['user_id']) && !empty($filters['user_id']) && empty($filters['user_type_id']))
         {
             $query->where("collections.created_by", '=', $filters['user_id']);
         }
 
-        $query->orderBy("collections.updated_at" , 'desc');
+        $query->orderBy("collections.created_at" , 'desc');
 
         if ($returnCount)
         {

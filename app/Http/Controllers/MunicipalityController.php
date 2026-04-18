@@ -402,7 +402,7 @@ class MunicipalityController extends BaseController
 			$addUrl = "admin.addStpFstp";
 
 			$filters = [
-				'user_type' => session('user')->user_type_id,
+				'user_type_id' => session('user')->user_type_id,
 				'user_id' => session('user')->user_id,
 				'municipality_id' => $request->m ?? null,
 			];
@@ -420,7 +420,7 @@ class MunicipalityController extends BaseController
 
 	function taggedStpFstps()
 	{
-		if(session('user')->user_type_id == 1 || session('user')->user_type_id == 2)
+		if(session('user')->user_type_id == 1)
 		{
 			$title = "Plants Tagged with Municipalities";
 			$addUrl = "admin.tagStpFstp";
@@ -578,7 +578,7 @@ class MunicipalityController extends BaseController
 			$addUrl = "admin.addVehicle";
 
 			$filters = [
-				'user_type' => session('user')->user_type_id,
+				'user_type_id' => session('user')->user_type_id,
 				'user_id' => session('user')->user_id,
 				'municipality_id' => $request->m ?? null,
 			];
@@ -629,7 +629,7 @@ class MunicipalityController extends BaseController
 			$addUrl = "admin.addFieldWorkers";
 
 			$filters = [
-				'user_type' => session('user')->user_type_id,
+				'user_type_id' => session('user')->user_type_id,
 				'user_id' => session('user')->user_id,
 				'municipality_id' => $request->m ?? null,
 			];

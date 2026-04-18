@@ -103,7 +103,9 @@
                             <th class="text-center">Image</th>
                             <th class="text-center">Name</th>                            
                             <th>Details</th>
+                            @if(session('user')->user_type_id==1)
                             <th class="text-center">Action</th>
+                            @endif
                           </tr>
                         </thead>
                         <tbody>
@@ -115,10 +117,12 @@
                             </td>
                             <td class="text-center">{{ $list->name }}</td>                            
                             <td>{{ $list->details }}</td>
+                            @if(session('user')->user_type_id==1)
                             <td class="text-center">
                               <a href="{{ route('admin.editModuleMaster.param', base64_encode($list->id)) }}" class="btn btn-warning btn-sm"><i class="bi bi-pencil-square"></i></a>
                               <a href="javascript:void(0)" onclick="confirmDelete('{{ route('admin.deleteModuleMaster.param', base64_encode($list->id)) }}')" class="btn btn-danger btn-sm d-none">Delete</a>
                             </td>
+                            @endif
                           </tr>
                           @endforeach
                         </tbody>

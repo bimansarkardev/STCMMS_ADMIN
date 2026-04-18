@@ -51,7 +51,7 @@
               <div class="col-12">
                   <div class="callout callout-info">
                       <span class="bi bi-info-circle-fill"></span>
-                      This is the list of <strong>{{ $title }}</strong>. You can <strong>edit</strong> existing ones, or <strong>delete</strong> those not linked to any records.
+                      This is the list of <strong>{{ $title }}</strong>.@if(session('user')->user_type_id==1) You can <strong>edit</strong> existing ones, or <strong>delete</strong> those not linked to any records.@endif
                   </div>
               </div>
 
@@ -94,11 +94,13 @@
                       <div class="col-md-6">
                         <h3 class="card-title mb-0">{{ $title }} List</h3>
                       </div>
+                      @if(session('user')->user_type_id==1)
                       <div class="col-md-6 text-end">
                         <div class="d-flex justify-content-end gap-2 flex-wrap">
                           <a href="{{ route($addUrl) }}" class="btn btn-info">Add New</a>
                         </div>
                       </div>
+                      @endif
                     </div>
                   </div>
                   <!-- /.card-header -->
@@ -112,8 +114,10 @@
                             <th>Vehicle Type</th>
                             <th>Vehicle Number</th>
                             <th>Category</th>
-                            <th>Capacity</th>                            
+                            <th>Capacity</th>
+                            @if(session('user')->user_type_id==1)
                             <th class="text-center">Action</th>
+                            @endif
                           </tr>
                         </thead>
                         <tbody>
@@ -125,10 +129,12 @@
                               <td>{{ $list->vehicle_reg_no }}</td>
                               <td>{{ $list->vehicle_category_name }}</td>
                               <td>{{ $list->capacity_mod }}</td>
+                              @if(session('user')->user_type_id==1)
                               <td class="text-center">
                                 <a href="#" class="btn btn-warning btn-sm"><i class="bi bi-pencil-square"></i></a>
                                 <a href="javascript:void(0)" onclick="confirmDelete('#')" class="btn btn-danger btn-sm"><i class="bi bi-trash-fill"></i></a>
                               </td>
+                              @endif
                             </tr>
                             @endforeach
                         </tbody>

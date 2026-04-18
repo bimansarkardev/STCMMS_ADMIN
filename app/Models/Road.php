@@ -34,7 +34,7 @@ class Road extends Model
         
         // Filters
         if (!empty($filters['user_type_id']) && $filters['user_type_id'] == 2) {
-            if (isset($filters['municipality']) && !empty($filters['user_id'])) {
+            if (isset($filters['user_id']) && !empty($filters['user_id'])) {
                 $query->where('road.municipality', '=', $filters['user_id']);
             }
         }

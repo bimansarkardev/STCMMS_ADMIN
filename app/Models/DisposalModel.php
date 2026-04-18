@@ -36,6 +36,8 @@ class DisposalModel extends Model
             ->leftJoin('plant_masters', "plant_masters.id", '=', "disposals.plant_id")
             ->leftJoin('plant_categories', 'plant_categories.id', '=', 'plant_masters.category_id')
             ->leftJoin('plant_master_incharges', "plant_master_incharges.id", '=', "disposals.incharge_id")
+            ->leftJoin('user as created_by_user', "created_by_user.user_id", '=', 'disposals.created_by')
+            ->leftJoin('ward', 'ward.id', '=', 'plant_masters.ward_id')
             ->select(
                 'disposals.id',
                 'disposals.uid',
@@ -44,6 +46,7 @@ class DisposalModel extends Model
                 'disposals.plant_id',
                 'plant_masters.location as plant_location',
                 'plant_categories.name as plant_category_name',
+                DB::raw("CONCAT(ward.ward_no , ' No. Ward') as plant_ward_no"),
                 'disposals.quantity',
                 DB::raw("CONCAT(disposals.quantity , ' ltr.') as quantity_mod"),
                 'disposals.incharge_id',
@@ -59,6 +62,7 @@ class DisposalModel extends Model
                     ) AS image_filepath
                 "),
                 'disposals.created_by',
+                'created_by_user.name as created_by_name',
                 'disposals.vehicle_id',
                 'vehicles.vehicle_type',
                 'vehicles.vehicle_reg_no',                
@@ -74,18 +78,24 @@ class DisposalModel extends Model
             $query->where("disposals.municipality_id", '=', $filters['municipality_id']);
         }
 
+        if (!empty($filters['user_type_id']) && $filters['user_type_id'] == 2) {
+            if (isset($filters['user_id']) && !empty($filters['user_id'])) {
+                $query->where('disposals.municipality_id', '=', $filters['user_id']);
+            }
+        }
+
         if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
             $from = $filters['from_date'] . ' 00:00:00';
             $to   = $filters['to_date'] . ' 23:59:59';
             $query->whereBetween('disposals.created_at', [$from, $to]);
         }
 
-        if(isset($filters['user_id']) && !empty($filters['user_id']))
+        if(isset($filters['user_id']) && !empty($filters['user_id']) && empty($filters['user_type_id']))
         {
             $query->where("disposals.created_by", '=', $filters['user_id']);
         }
 
-        $query->orderBy("disposals.updated_at" , 'desc');
+        $query->orderBy("disposals.created_at" , 'desc');
 
         if ($returnCount)
         {

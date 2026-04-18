@@ -297,6 +297,7 @@ class ApiCollectionController extends Controller
 
         $filters = [
             'municipality_id' => $field_worker->municipality_id,
+            'tagged_municipality_id' => $field_worker->municipality_id,
         ];
         $params = (new PlantMasterModel)->getPlants(null, $filters);
 

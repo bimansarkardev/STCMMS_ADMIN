@@ -21,5 +21,7 @@ class AttendanceModel extends Model
         'updated_at',
         'status',
     ];
+
+    
 }
 

@@ -51,7 +51,7 @@
               <div class="col-12">
                   <div class="callout callout-info">
                       <span class="bi bi-info-circle-fill"></span>
-                      This is the list of <strong>{{ $title }}</strong>. You can <strong>edit</strong> existing ones, or <strong>delete</strong> those not linked to any records.
+                      This is the list of <strong>{{ $title }}</strong>.@if(session('user')->user_type_id==1) You can <strong>edit</strong> existing ones, or <strong>delete</strong> those not linked to any records.@endif
                   </div>
               </div>
 

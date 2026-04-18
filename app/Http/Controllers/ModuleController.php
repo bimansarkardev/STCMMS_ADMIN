@@ -21,7 +21,7 @@ class ModuleController extends BaseController
 
 	public function moduleMaster()
 	{
-		if (session('user')->user_type_id == 1) {
+		if (session('user')->user_type_id == 1 || session('user')->user_type_id == 2) {
 			$params = ModuleMaster::where('status', 1)
 				->orderBy('ordering', 'asc')
 				->get();
